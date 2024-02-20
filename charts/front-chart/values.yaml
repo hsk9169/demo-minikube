@@ -1,0 +1,19 @@
+replicaCount: 1
+
+namespace: demo
+
+image:
+  repository: 302944950584.dkr.ecr.ap-northeast-2.amazonaws.com/test-wrtn-demo-front
+  tag: "${CI_COMMIT_SHA:0:8}"
+
+secrets:
+  ecr: aws-ecr-regcred
+
+container:
+  name: http-react
+  port: 3000
+
+service:
+  name: front-svc
+  type: ClusterIP
+  port: 3000

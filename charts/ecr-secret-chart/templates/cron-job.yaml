@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ecr-registry-helper-cronjob
+  namespace: {{ .Values.namespace }}
+spec:
+  schedule: "0 */2 * * *"
+  successfulJobsHistoryLimit: 1
+  suspend: false
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: aws-ecr-health-check
+          restartPolicy: OnFailure
+          containers:
+          - name: ecr-registry-helper 
+            image: public.ecr.aws/f0u4e1w8/awscli-kubectl:latest 
+            imagePullPolicy: IfNotPresent
+            env:
+              - name: NAMESPACE_NAME
+                value: {{ .Values.namespace }}
+            envFrom:
+              - secretRef:
+                  name: ecr-registry-helper-secrets
+              - configMapRef:
+                  name: ecr-registry-helper-cm
+            command:
+            - /bin/bash
+            - -c
+            - |
+              aws --version
+              aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+              aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+              ECR_TOKEN=`aws ecr get-login-password --region ${AWS_REGION}`
+              kubectl delete secret --ignore-not-found $DOCKER_SECRET_NAME
+              kubectl create secret docker-registry $DOCKER_SECRET_NAME \
+                --docker-server=https://${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com \
+                --docker-username=AWS \
+                --docker-password="${ECR_TOKEN}" \
+                --namespace=$NAMESPACE_NAME
+              echo "Secret was successfully updated at $(date)"

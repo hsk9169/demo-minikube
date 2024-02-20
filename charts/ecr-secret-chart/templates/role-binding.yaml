@@ -1,0 +1,14 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: aws-ecr-helper-health-check-role-binding 
+  namespace: {{ .Values.namespace }}
+subjects:
+- kind: ServiceAccount
+  name: aws-ecr-health-check 
+  namespace: {{ .Values.namespace }}
+  apiGroup: ""
+roleRef:
+  kind: Role
+  name: aws-ecr-helper-role-full-access-to-secrets 
+  apiGroup: ""

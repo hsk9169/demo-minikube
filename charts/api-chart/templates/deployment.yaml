@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-deployment
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }} 
+  selector:
+    matchLabels:
+      app: go-server
+  template:
+    metadata:
+      labels:
+        app: go-server
+    spec:
+      serviceAccountName: aws-ecr-health-check
+      imagePullSecrets:
+        - name: {{ .Values.secrets.ecr }}
+      containers:
+        - name: {{ .Values.container.name }} 
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.container.port }} 
+          env:
+            {{- range $v := .Values.container.env }}
+            - name: {{ $v.name }}
+              value: "{{ $v.value }}"
+            {{- end }}
+      initContainers:
+        - name: ecr-registry-helper 
+          image: public.ecr.aws/f0u4e1w8/awscli-kubectl:latest 
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NAMESPACE_NAME
+              value: {{ .Values.namespace }}
+          envFrom:
+            - secretRef:
+                name: ecr-registry-helper-secrets
+            - configMapRef:
+                name: ecr-registry-helper-cm
+          command:
+          - /bin/bash
+          - -c
+          - |
+            aws --version
+            aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+            aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+            ECR_TOKEN=`aws ecr get-login-password --region ${AWS_REGION}`
+            kubectl delete secret --ignore-not-found $DOCKER_SECRET_NAME
+            kubectl create secret docker-registry $DOCKER_SECRET_NAME \
+              --docker-server=https://${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com \
+              --docker-username=AWS \
+              --docker-password="${ECR_TOKEN}" \
+              --namespace=$NAMESPACE_NAME
+            echo "Secret was successfully updated at $(date)"

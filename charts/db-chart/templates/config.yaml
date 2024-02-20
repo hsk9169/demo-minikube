@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-initdb-config
+  namespace: {{ .Values.namespace }}
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS my_database;
+    USE my_database;
+    CREATE TABLE users (user_id INT AUTO_INCREMENT PRIMARY KEY, phone_number CHAR(20) NOT NULL, password VARCHAR(100) NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);

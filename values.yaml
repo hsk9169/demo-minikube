@@ -1,0 +1,79 @@
+envName: test
+
+default:
+  app:
+    enableAutoSync: true
+    autoSyncPrune: true
+    enableSelfHeal: true
+    project: demo
+    destination:
+      namespace: demo
+      server: https://kubernetes.default.svc
+    source:
+      repoURL: git@gitlab.com:hsk91691/helm-test.git
+      targetRevision: feature/dev
+      extraSourceFields: |
+        helm:
+          valueFiles:
+          - values.yaml
+#          - {{ $.Values.envName }}-values.yaml
+
+
+projects:
+  demo:
+    description: Project for Demo Application
+    sourceRepos: |
+      - git@gitlab.com:hsk91691/helm-test.git
+    destinations:
+      server: https://kubernetes.default.svc
+      namespace: demo
+    clusterResourceWhitelist: |
+      - group: '*'
+        kind: '*'
+    roles: |
+      - name: admin
+        policies:
+           - p, *, *, *
+#      - name: read-only
+#        description: Read-only priviledges within project
+#        policies:
+#        - p, proj:{{ $.curProjName }}:read-only, applications, get, {{ $.curProjName }}/*, allow
+#      - name: ci-role
+#        description: Role to allow CICD pipeline to sync apps within project
+#        policies:
+#        - p, proj:{{ $.curProjName }}:ci-role, applications, sync, {{ $.curProjName }}/*, allow
+
+applications:
+  api-service:
+    enabled: true
+    source:
+      path: charts/api-chart
+  front-service:
+    enabled: true
+    source:
+      path: charts/front-chart
+  db-service:
+    enabled: true
+    source:
+      path: charts/db-chart
+  ecr-secret-service:
+    enabled: true
+    source:
+      path: charts/ecr-secret-chart
+
+
+ingress:
+  api:
+    host: app.demo
+    paths:
+      auth:
+        path: /api
+        svcName: api-svc
+        svcPort: 8000
+  front:
+    host: app.front
+    paths:
+      default:
+        path: /
+        svcName: front-svc
+        svcPort: 3000

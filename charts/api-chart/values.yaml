@@ -1,0 +1,36 @@
+replicaCount: 1
+
+namespace: demo
+
+image:
+  repository: 302944950584.dkr.ecr.ap-northeast-2.amazonaws.com/test-wrtn-demo-api
+  tag: "${CI_COMMIT_SHA:0:8}"
+
+secrets:
+  ecr: aws-ecr-regcred
+
+container:
+  name: http-go
+  port: 8080
+  env:
+  - name: MYSQL_HOSTNAME
+    value: mysql-temp
+  - name: MYSQL_PORT
+    value: 3306
+  - name: MYSQL_USERNAME
+    value: root
+  - name: MYSQL_PASSWORD
+    value: password
+  - name: MYSQL_DBNAME
+    value: my_database
+  - name: MYSQL_TABLENAME
+    value: users
+  - name: ACCESS_TOKEN_SECRET_KEY
+    value: AUTH_TOKEN_SECRET_KEY
+  - name: REFRESH_TOKEN_SECRET_KEY
+    value: AUTH_TOKEN_SECRET_KEY
+
+service:
+  name: api-svc
+  type: ClusterIP
+  port: 8000

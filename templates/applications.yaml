@@ -1,0 +1,30 @@
+{{- range $key,$val := .Values.applications }}
+{{- if $val.enabled }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ required "A valid envName is required" $.Values.envName }}-{{ $key }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  destination:
+    namespace: {{ $.Values.default.app.destination.namespace | required (printf "No namespace specified for %s" $key ) }}
+    server: {{ $.Values.default.app.destination.server | required (printf "No namespace specified for %s" $key ) }}
+  project: {{ $.Values.envName }}-{{ $.Values.default.app.project | required (printf "No project specified for %s" $key ) }}
+  source:
+    path: {{ tpl $val.source.path $ }}
+    repoURL: {{ $.Values.default.app.source.repoURL | required (printf "No source.repoURL specified for %s" $key) }}
+    targetRevision: {{ $.Values.default.app.source.targetRevision | required (printf "No source.targetRevision specified for %s" $key ) }}
+{{- if $val.source.extraSourceFields }}
+{{ tpl $val.source.extraSourceFields $ | indent 4 }}
+{{- else if $.Values.default.app.source.extraSourceFields }}
+{{ tpl $.Values.default.app.source.extraSourceFields $ | indent 4 }}
+{{- end }}
+{{- if $.Values.default.app.enableAutoSync }}
+  syncPolicy:
+    automated:
+      prune: {{ $.Values.default.app.autoSyncPrune | default true }}
+      selfHeal: {{ $.Values.default.app.enableSelfHeal | default true }}
+{{- end }}
+{{- end }}
+{{- end }}
